@@ -1,6 +1,6 @@
 # 📉 Telco Customer Churn Analysis
 
-> **An end-to-end data analytics project** combining SQL, Python (EDA & preprocessing), Power BI dashboards, and a REST API backend — built to uncover why telecom customers leave and which segments are most at risk.
+> **An end-to-end data analytics project** combining SQL, Python EDA, and Power BI dashboards — built to uncover why telecom customers leave and which segments are most at risk.
 
 ---
 
@@ -13,10 +13,8 @@
 - [Folder Structure](#-folder-structure)
 - [Database & SQL Layer](#-database--sql-layer)
 - [Exploratory Data Analysis](#-exploratory-data-analysis-eda)
-- [Data Preprocessing](#-data-preprocessing)
+- [Data Cleaning](#-data-cleaning)
 - [Power BI Dashboard](#-power-bi-dashboard)
-- [Backend API](#-backend-api)
-- [Machine Learning (Brief Note)](#-machine-learning-brief-note)
 - [Key Business Insights](#-key-business-insights)
 - [How to Run](#-how-to-run)
 
@@ -32,7 +30,6 @@ This project analyzes the Telco Customer Churn dataset to:
 - **Explore** the data through rich visualizations
 - **Query** business questions using structured SQL
 - **Visualize** KPIs and trends through a Power BI dashboard
-- **Serve** insights through a lightweight REST API
 
 ---
 
@@ -93,11 +90,9 @@ The dataset captures four categories of customer information:
 | Layer | Technology | Purpose |
 |---|---|---|
 | **Database** | MySQL | Store, query and analyze customer data |
-| **Analysis** | Python (Pandas, Matplotlib, Seaborn) | EDA and data preprocessing |
+| **Analysis** | Python (Pandas, Matplotlib, Seaborn) | EDA and data cleaning |
 | **Notebooks** | Jupyter Notebook | Interactive data exploration |
 | **Dashboard** | Power BI | Visual KPIs and business reporting |
-| **Backend API** | Node.js + Express | REST API bridging frontend and ML service |
-| **ML Service** | Python + Flask | Prediction endpoint (see ML note below) |
 
 ---
 
@@ -111,18 +106,10 @@ MySQL Database  ─────────────────────�
     │                                                      (Business Insights)
     │
     ▼
-Python Notebooks
-  ├── EDA (eda.ipynb)          – Visualize churn patterns
-  └── Preprocessing            – Clean data, encode features
+Python Notebook (eda.ipynb)    – Visualize churn patterns
     │
     ▼
 Power BI Dashboard             – KPIs, charts, slicers for stakeholders
-    │
-    ▼
-Flask ML Service (port 5000)   – Prediction endpoint
-    │
-    ▼
-Express Backend (port 3001)    – API gateway / proxy
 ```
 
 ---
@@ -134,10 +121,7 @@ customer-churn/
 │
 ├── data/                          # Raw and processed datasets
 │   ├── WA_Fn-UseC_-Telco-Customer-Churn.csv   # Original dataset
-│   ├── telco_churn_clean.csv                   # Cleaned dataset
-│   ├── X_train.csv / X_test.csv               # Feature splits
-│   ├── y_train.csv / y_test.csv               # Label splits
-│   └── churn_feature_summary.csv              # Feature importance summary
+│   └── telco_churn_clean.csv                   # Cleaned dataset
 │
 ├── sql/                           # MySQL scripts (ordered by execution)
 │   ├── 1_create_database.sql      # Create the database
@@ -149,22 +133,10 @@ customer-churn/
 │   └── 7_indexes.sql              # Performance indexes
 │
 ├── notebook/                      # Jupyter notebooks
-│   ├── eda.ipynb                  # Exploratory Data Analysis
-│   └── preprocessing.ipynb        # Data cleaning & transformation
+│   └── eda.ipynb                  # Exploratory Data Analysis
 │
-├── power_bi/
-│   └── customer_churn.pbix        # Power BI dashboard file
-│
-├── backend/                       # Node.js + Express REST API
-│   ├── server.js                  # API server (port 3001)
-│   └── package.json
-│
-├── ml/                            # ML prediction service (Flask)
-│   └── app.py                     # Flask app (port 5000)
-│
-└── models/                        # Saved ML artifacts
-    ├── best_model.pkl             # Trained model (serialized)
-    └── scaler.pkl                 # Feature scaler (serialized)
+└── power_bi/
+    └── customer_churn.pbix        # Power BI dashboard file
 ```
 
 ---
@@ -243,19 +215,16 @@ The EDA notebook covers:
 
 ---
 
-## 🧹 Data Preprocessing
+## 🧹 Data Cleaning
 
-**Notebook:** `notebook/preprocessing.ipynb`
+**Notebook:** `notebook/eda.ipynb`
 
-Key preprocessing steps performed:
+Key cleaning steps performed during exploration:
 
-- **Missing value handling** — `TotalCharges` had blank strings converted to `NaN` and imputed
-- **Data type conversion** — Converted `TotalCharges` from string to float
-- **Label encoding** — Binary columns (`Yes`/`No`) encoded to `1`/`0`
-- **One-hot encoding** — Multi-class categoricals (e.g., `InternetService`, `Contract`) encoded
-- **Feature scaling** — Applied `StandardScaler` on numerical features (`tenure`, `MonthlyCharges`, `TotalCharges`)
-- **Train/Test split** — Data split into training (75%) and test (25%) sets
-- **Output files** — `X_train.csv`, `X_test.csv`, `y_train.csv`, `y_test.csv`, `telco_churn_clean.csv`
+- **Missing value handling** — Identified and removed blank strings/null values in `TotalCharges`
+- **Customer ID removal** — Dropped `customerID` as it is a non-predictive unique identifier
+- **Deduplication** — Checked and removed duplicate customer entries
+- **Cleaned export** — Exported the cleaned dataset as `telco_churn_clean.csv` for SQL and Power BI layers
 
 ---
 
@@ -274,58 +243,6 @@ The Power BI report provides an interactive business dashboard with:
 - **Tenure vs Churn** — How loyalty relates to retention
 
 > Open `customer_churn.pbix` in **Microsoft Power BI Desktop** to explore the interactive report.
-
----
-
-## 🌐 Backend API
-
-**Folder:** `backend/`  
-**Runtime:** Node.js + Express (port `3001`)
-
-The Express server acts as an **API gateway** — it sits between the frontend and the Flask ML prediction service.
-
-### Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/` | Health check — confirms the backend is running |
-| `POST` | `/predict` | Forwards customer data to Flask and returns the churn prediction |
-
-### How it Works
-
-```
-Frontend (Next.js)
-      │  POST /predict  { customer_data }
-      ▼
-Express Server (port 3001)
-      │  Proxies request to Flask
-      ▼
-Flask ML Service (port 5000)
-      │  Returns { prediction, probability }
-      ▼
-Express returns response to Frontend
-```
-
-### Running the Backend
-```bash
-cd backend
-npm install
-npm start
-# Server starts at http://localhost:3001
-```
-
----
-
-## 🤖 Machine Learning (Brief Note)
-
-> ⚠️ **Note:** The ML component is included in this project to complete the end-to-end pipeline (data → insights → prediction API). The focus of this project is on the **data analytics, SQL analysis, and Power BI** layers.
-
-The ML part (`ml/app.py`) is a **Flask REST API** that:
-- Loads a pre-trained model (`models/best_model.pkl`) and scaler (`models/scaler.pkl`)
-- Accepts customer feature data as JSON
-- Returns a churn prediction (`Yes`/`No`) and a probability score
-
-The model was trained using the cleaned and encoded dataset from the preprocessing notebook. The serialized files (`.pkl`) are stored in the `models/` folder.
 
 ---
 
@@ -349,8 +266,7 @@ Based on the SQL analysis and EDA:
 
 ### Prerequisites
 - MySQL (v8+)
-- Python 3.9+ with `pandas`, `matplotlib`, `seaborn`, `scikit-learn`, `flask`
-- Node.js 18+
+- Python 3.9+ with `pandas`, `matplotlib`, `seaborn`
 - Power BI Desktop (for `.pbix` file)
 - Jupyter Notebook / JupyterLab
 
@@ -375,18 +291,9 @@ source sql/7_indexes.sql
 cd notebook
 jupyter notebook
 # Open eda.ipynb → Run All
-# Open preprocessing.ipynb → Run All
 ```
 
-### Step 4 — Start the Backend API
-```bash
-cd backend
-npm install
-npm start
-# Express running at http://localhost:3001
-```
-
-### Step 5 — Open the Dashboard
+### Step 4 — Open the Dashboard
 ```
 Open Power BI Desktop
 → File → Open → select power_bi/customer_churn.pbix
